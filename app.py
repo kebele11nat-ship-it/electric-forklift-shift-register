@@ -1,7 +1,5 @@
 import io
 import re
-from datetime import datetime
-
 import pandas as pd
 import streamlit as st
 
@@ -11,7 +9,6 @@ st.markdown("""
 <style>
 .block-container {max-width:1200px; padding-top:2rem;}
 .hero {padding:1.4rem; border:1px solid rgba(128,128,128,.25); border-radius:16px; margin-bottom:1.2rem;}
-.metric-card {padding:1rem; border:1px solid rgba(128,128,128,.2); border-radius:14px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -44,10 +41,9 @@ def parse_report(text):
     time_match = re.search(r'Time\s*:\s*(.+)', text, re.I)
     date_text = date_match.group(1).strip() if date_match else ''
     time_text = time_match.group(1).strip() if time_match else ''
-
-    # Split before each FLT Code, preserving each record.
-    blocks = re.split(r'(?=FLT\s*Code\s*:\s*)', text, flags=re.I)
+    blocks = re.split(r'(?=FLT\s*Code\s*:)', text, flags=re.I)
     records = []
+
     for block in blocks:
         if not re.search(r'FLT\s*Code\s*:', block, re.I):
             continue
@@ -120,7 +116,6 @@ if st.button('⚙️ Process Shift Report', type='primary', use_container_width=
 
 if 'df' in st.session_state:
     df = st.session_state['df'].copy()
-
     total = len(df)
     active = int((df['Status'].str.strip().str.lower() == 'active').sum())
     charging = int((df['Status'].str.strip().str.lower() == 'charging').sum())
@@ -137,18 +132,19 @@ if 'df' in st.session_state:
     c4.metric('Avg. Charge', f'{avg_charge:.1f}%' if pd.notna(avg_charge) else '—')
     c5.metric('Operators Missing', missing)
 
-    st.code(
-        f'''=== ELECTRIC FORKLIFT SHIFT STATUS ===\n'
-        f'DATE : {df.iloc[0]["Date"]}    TIME : {df.iloc[0]["Time"]}\n'
-        f'----------------------------------------\n'
-        f'TOTAL FLT        : {total}\n'
-        f'ACTIVE           : {active}\n'
-        f'CHARGING         : {charging}\n'
-        f'AVG CHARGE       : {avg_charge:.1f}%\n'
-        f'OPERATOR ASSIGNED: {assigned}\n'
-        f'OPERATOR MISSING : {missing}\n'
-        f'----------------------------------------'''
+    terminal = (
+        "=== ELECTRIC FORKLIFT SHIFT STATUS ===\n"
+        f"DATE : {df.iloc[0]['Date']}    TIME : {df.iloc[0]['Time']}\n"
+        "----------------------------------------\n"
+        f"TOTAL FLT        : {total}\n"
+        f"ACTIVE           : {active}\n"
+        f"CHARGING         : {charging}\n"
+        f"AVG CHARGE       : {avg_charge:.1f}%\n"
+        f"OPERATOR ASSIGNED: {assigned}\n"
+        f"OPERATOR MISSING : {missing}\n"
+        "----------------------------------------"
     )
+    st.code(terminal)
 
     if missing:
         missing_codes = ', '.join(df.loc[df['Operator'].fillna('').str.strip().eq(''), 'FLT Code'].astype(str))
@@ -159,7 +155,6 @@ if 'df' in st.session_state:
     display_df['Charge %'] = display_df['Charge %'].apply(lambda x: f'{x:.0f}%' if pd.notna(x) else '')
     st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-    # Compact summary table for Excel.
     status_counts = df['Status'].fillna('').str.strip().replace('', 'Not specified').value_counts()
     summary_rows = [
         ['Shift Date', df.iloc[0]['Date']],
