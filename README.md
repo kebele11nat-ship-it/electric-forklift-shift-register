@@ -1,17 +1,28 @@
 # Electric Forklift Shift Register
 
-A free browser-based tool for converting the OC's WhatsApp-style Electric Forklift Status Report into a structured shift register and Excel workbook.
+A browser-based OC shift-entry tool for recording the status of the electric forklift fleet at the beginning of every shift.
 
-## Workflow
-1. Paste the OC report.
-2. Click **Process Shift Report**.
-3. Review the extracted FLT records.
-4. Review the terminal-style shift summary.
-5. Download the Excel workbook.
+## Main purpose
+The OC enters each forklift's:
+- Status
+- Battery charge %
+- Operator assigned
+- Operation / location (L1, L2, RM, Inside, etc.)
 
-## Excel output
-- **Shift Register** sheet: date, time, FLT code, status, operator, operation, charge %.
-- **Summary** sheet: total FLTs, active, charging, average charge, operator allocation and status counts.
+The app immediately summarizes:
+- Total forklifts
+- Active forklifts
+- Charging forklifts
+- Average battery charge
+- Operators assigned
+- Operators missing
+- Forklifts with low battery
 
-## Free deployment
-This app is designed for Streamlit Community Cloud and requires no paid API.
+## Records and Excel
+Each saved shift is stored in the browser's local storage and can be exported to an Excel workbook containing the full shift register and summary.
+
+## GitHub Pages
+The direct browser app is `index.html`, so it can run from GitHub Pages without Python or Streamlit.
+
+## Next upgrade
+For a shared permanent company-wide register across multiple devices, connect the form to Supabase (free tier) and automatically synchronize every submitted shift to the central database.
