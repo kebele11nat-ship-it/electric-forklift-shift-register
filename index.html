@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Electric Forklift Shift Register</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+:root{font-family:Arial,sans-serif;color:#17202a;background:#f4f6f8}body{margin:0}.wrap{max-width:1200px;margin:auto;padding:24px}.hero{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 10px #00000012;margin-bottom:18px}.hero h1{margin:0 0 8px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px #00000012;margin-bottom:18px}.meta label,.flt label{font-size:12px;font-weight:700;display:block;margin-bottom:5px}.meta input,.meta select,.flt input,.flt select{width:100%;box-sizing:border-box;padding:10px;border:1px solid #ccd3da;border-radius:9px;font-size:14px}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left}.table th{background:#f8fafc}.btn{border:0;border-radius:10px;padding:12px 18px;font-weight:700;cursor:pointer}.primary{background:#2563eb;color:#fff}.secondary{background:#e5e7eb}.danger{background:#fee2e2;color:#991b1b}.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.metric{background:#fff;border-radius:12px;padding:15px;border:1px solid #e5e7eb}.metric b{font-size:25px;display:block}.summary{background:#111827;color:#fff;border-radius:12px;padding:16px;font-family:Consolas,monospace;white-space:pre-wrap}.warn{background:#fff7ed;border:1px solid #fed7aa;padding:12px;border-radius:10px;margin-top:12px}.history{max-height:350px;overflow:auto}@media(max-width:800px){.grid,.metrics{grid-template-columns:1fr 1fr}.wrap{padding:12px}.table{font-size:12px}.table input,.table select{min-width:90px}}@media(max-width:500px){.grid,.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero"><h1>🧧 Electric Forklift Shift Register</h1><p>OC enters the forklift status at the beginning of each shift. The app calculates operator allocation, work location and battery status and keeps a shift history in this browser.</p></div>
+<div class="card">
+<h2>1. Shift Information</h2>
+<div class="grid meta">
+<div><label>Date</label><input id="date" type="date"></div>
+<div><label>Time</label><input id="time" type="time"></div>
+<div><label>Shift</label><select id="shift"><option>Morning</option><option>Afternoon</option><option>Night</option></select></div>
+<div><label>Prepared by (OC)</label><input id="oc" placeholder="Name"></div>
+</div>
+</div>
+<div class="card">
+<h2>2. Electric Forklift Status</h2>
+<p>Enter the operator, where the forklift is assigned, status and battery charge for every forklift.</p>
+<table class="table"><thead><tr><th>FLT</th><th>Status</th><th>Charge %</th><th>Operator</th><th>Operation / Location</th></tr></thead><tbody id="fltRows"></tbody></table>
+<br><button class="btn primary" onclick="saveShift()">💾 SAVE SHIFT REPORT</button> <button class="btn secondary" onclick="clearForm()">↺ Clear</button>
+</div>
+<div id="result" style="display:none">
+<div class="card"><h2>📟 Shift Summary</h2><div class="metrics" id="metrics"></div><br><div class="summary" id="terminal"></div><div id="warnings"></div></div>
+<div class="card"><h2>📋 Saved Shift</h2><div id="savedTable"></div></div>
+</div>
+<div class="card"><h2>📚 Shift History</h2><p>Records are stored locally in this browser. Export the full register to Excel whenever required.</p><div class="history" id="history"></div><br><button class="btn primary" onclick="exportExcel()">📥 Export Full Register to Excel</button> <button class="btn danger" onclick="deleteHistory()">Delete Local History</button></div>
+</div>
+<script>
+const FLTS=['10','13','14','24','29','30','31'];
+const statuses=['Active','Charging','Maintenance','Unavailable','Other'];
+let history=JSON.parse(localStorage.getItem('forkliftHistory')||'[]');
+const pad=n=>String(n).padStart(2,'0');
+const now=new Date();
+document.getElementById('date').value=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+document.getElementById('time').value=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+function renderRows(){document.getElementById('fltRows').innerHTML=FLTS.map((f,i)=>`<tr class="flt"><td><b>${f}</b></td><td><select id="s${i}">${statuses.map((s,j)=>`<option ${j===0?'selected':''}>${s}</option>`).join('')}</select></td><td><input id="c${i}" type="number" min="0" max="100" step="5" value="0"></td><td><input id="o${i}" placeholder="Operator"></td><td><input id="p${i}" placeholder="L1 / L2 / RM / Inside"></td></tr>`).join('')}
+renderRows();
+function collect(){return FLTS.map((code,i)=>({Date:document.getElementById('date').value,Time:document.getElementById('time').value,Shift:document.getElementById('shift').value,OC:document.getElementById('oc').value.trim(),FLT_Code:code,Status:document.getElementById('s'+i).value,Charge_Percent:Number(document.getElementById('c'+i).value)||0,Operator:document.getElementById('o'+i).value.trim(),Operation:document.getElementById('p'+i).value.trim(),Saved_At:new Date().toISOString()}));}
+function saveShift(){const rows=collect();history.push(...rows);localStorage.setItem('forkliftHistory',JSON.stringify(history));showResult(rows);renderHistory();alert('Shift report saved successfully.');}
+function showResult(rows){document.getElementById('result').style.display='block';const total=rows.length,active=rows.filter(r=>r.Status==='Active').length,charging=rows.filter(r=>r.Status==='Charging').length,assigned=rows.filter(r=>r.Operator).length,missing=total-assigned,avg=rows.reduce((a,r)=>a+r.Charge_Percent,0)/total;document.getElementById('metrics').innerHTML=[['Total FLTs',total],['Active',active],['Charging',charging],['Avg Charge',avg.toFixed(1)+'%'],['Operators Missing',missing]].map(x=>`<div class="metric"><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');let text=`=== ELECTRIC FORKLIFT SHIFT STATUS ===\nDATE : ${fmtDate(rows[0].Date)}    TIME : ${fmtTime(rows[0].Time)}\nSHIFT: ${rows[0].Shift}\n----------------------------------------\nTOTAL FLT        : ${total}\nACTIVE           : ${active}\nCHARGING         : ${charging}\nAVG CHARGE       : ${avg.toFixed(1)}%\nOPERATOR ASSIGNED: ${assigned}\nOPERATOR MISSING : ${missing}\n----------------------------------------`;document.getElementById('terminal').textContent=text;const missingRows=rows.filter(r=>!r.Operator);const low=rows.filter(r=>r.Charge_Percent<30);document.getElementById('warnings').innerHTML=(missingRows.length?`<div class="warn">⚠️ No operator assigned: ${missingRows.map(r=>r.FLT_Code).join(', ')}</div>`:'')+(low.length?`<div class="warn">🔋 Low battery (&lt;30%): ${low.map(r=>r.FLT_Code+' ('+r.Charge_Percent+'%)').join(', ')}</div>`:'');document.getElementById('savedTable').innerHTML=table(rows);}
+function table(rows){return `<table class="table"><thead><tr><th>FLT</th><th>Status</th><th>Charge</th><th>Operator</th><th>Operation</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.FLT_Code}</td><td>${r.Status}</td><td>${r.Charge_Percent}%</td><td>${r.Operator||'—'}</td><td>${r.Operation||'—'}</td></tr>`).join('')}</tbody></table>`}
+function renderHistory(){document.getElementById('history').innerHTML=history.length?table(history.slice().reverse()):'<p>No records saved yet.</p>';}
+function exportExcel(){if(!history.length){alert('No records to export.');return}const data=history.map(r=>({'Date':fmtDate(r.Date),'Time':fmtTime(r.Time),'Shift':r.Shift,'OC':r.OC,'FLT Code':r.FLT_Code,'Status':r.Status,'Charge %':r.Charge_Percent,'Operator':r.Operator,'Operation / Location':r.Operation}));const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Shift Register');const summary=[['Metric','Value'],['Total records',history.length],['Active records',history.filter(r=>r.Status==='Active').length],['Charging records',history.filter(r=>r.Status==='Charging').length],['Average charge',history.reduce((a,r)=>a+r.Charge_Percent,0)/history.length]];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),'Summary');XLSX.writeFile(wb,'electric_forklift_shift_register.xlsx');}
+function clearForm(){renderRows();document.getElementById('oc').value='';document.getElementById('result').style.display='none';}
+function deleteHistory(){if(confirm('Delete all locally saved history from this browser?')){history=[];localStorage.removeItem('forkliftHistory');renderHistory();}}
+function fmtDate(d){const x=d.split('-');return x.length===3?`${x[2]}/${x[1]}/${x[0]}`:d}function fmtTime(t){const [h,m]=t.split(':');let n=Number(h),ap=n>=12?'PM':'AM';n=n%12||12;return `${n}:${m} ${ap}`}
+renderHistory();
+</script>
+</body></html>
